@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MessageType {
+  TEXT
+  FILE
+}
+
+model User {
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  email               String               @unique
+  password            String
+  photo               String?
+  role                Role                 @default(USER)
+  isOnline            Boolean              @default(false)
+  lastSeen            DateTime?
+  refreshTokens       RefreshToken[]
+  passwordResetTokens ResetPasswordToken[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  sentMessages        Message[]            @relation("SentMessages")
+  receivedMessages    Message[]            @relation("ReceivedMessages")
+  ownedGroups         Group[]              @relation("GroupOwner")
+  groups              GroupMember[]
+  files               File[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique @db.VarChar(512)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("refresh_tokens")
+}
+
+model ResetPasswordToken {
+  id        String   @id @default(uuid())
+  userId    Int
+  token     String   @unique @db.VarChar(512)
+  used      Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reset_password_tokens")
+}
+
+model Message {
+  id              Int         @id @default(autoincrement())
+  content         String      @db.Text
+  type            MessageType @default(TEXT)
+  senderId        Int
+  sender          User        @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId      Int?
+  receiver        User?       @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: SetNull)
+  groupId         Int?
+  group           Group?      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  file            File?
+  isRead          Boolean     @default(false)
+  readAt          DateTime?
+  isDeleted       Boolean     @default(false)
+  deletedForAll   Boolean     @default(false)
+  deletedForUsers String      @default("[]") @db.VarChar(1000)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("messages")
+}
+
+model Group {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?       @db.Text
+  photo       String?
+  ownerId     Int
+  owner       User          @relation("GroupOwner", fields: [ownerId], references: [id])
+  members     GroupMember[]
+  messages    Message[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  groupId   Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, groupId])
+  @@map("group_members")
+}
+
+model File {
+  id         Int      @id @default(autoincrement())
+  filename   String
+  path       String
+  mimeType   String
+  size       Int
+  messageId  Int      @unique
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploaderId Int
+  uploader   User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("files")
+}
