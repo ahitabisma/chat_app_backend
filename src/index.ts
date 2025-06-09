@@ -46,7 +46,14 @@ app.use('/documents', express.static('public/documents'));
 
 // Routes
 app.use('/health', (req: Request, res: Response) => {
-    res.status(200).json({ status: 'OK', message: 'Server is healthy' });
+    res.status(200).json({
+        status: 'OK', message: 'Server is healthy', data: {
+            timestamp: new Date().toISOString(),
+            environment: process.env.NODE_ENV || 'development',
+            version: process.env.VERSION || '1.0.0',
+            ip_address: req.ip,
+        }
+    });
 });
 app.use('/api', authRoutes);
 app.use('/api/admin', userRoutes);
@@ -57,7 +64,7 @@ app.use(errorMiddleware);
 
 (async () => {
     try {
-        // await EmailService.init();
+        await EmailService.init();
 
         const port = Number(process.env.PORT) || 3000;
         server.listen(port, () => {
