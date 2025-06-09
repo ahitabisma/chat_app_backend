@@ -49,7 +49,6 @@ app.use('/health', (req: Request, res: Response) => {
     res.status(200).json({
         status: 'OK', message: 'Server is healthy', data: {
             timestamp: new Date().toISOString(),
-            environment: process.env.NODE_ENV || 'development',
             version: process.env.VERSION || '1.0.0',
             ip_address: req.ip,
         }
