@@ -18,8 +18,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
+            export NVM_DIR="/www/server/nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 22
             cd ${{ secrets.PROJECT_PATH }}
             git pull origin main
             npx prisma migrate deploy
             npm run build
-            
