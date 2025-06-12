@@ -25,4 +25,3 @@ jobs:
             git pull origin main
             npx prisma migrate deploy
             npm run build
-            sh ${{ secrets.PROJECT_PATH }}/restart.sh

@@ -54,7 +54,7 @@ export function setupSocketIO(server: http.Server) {
             logger.info(`User ${socket.name} (${socket.userId}) connected`);
 
             // Update user's online status in database
-            updateUserOnlineStatus(socket.userId, true);
+            updateLastSeenTime(socket.userId);
 
             // Emit to all users that this user is online
             io.emit('user:status', {
@@ -72,7 +72,7 @@ export function setupSocketIO(server: http.Server) {
                 connectedUsers.delete(socket.userId);
 
                 // Update user's online status in database
-                updateUserOnlineStatus(socket.userId, false);
+                updateLastSeenTime(socket.userId);
 
                 // Emit to all users that this user is offline
                 io.emit('user:status', {
@@ -96,13 +96,12 @@ export function setupSocketIO(server: http.Server) {
 }
 
 // Update user's online status in the database
-async function updateUserOnlineStatus(userId: number, isOnline: boolean) {
+async function updateLastSeenTime(userId: number) {
     try {
         await prisma.user.update({
             where: { id: userId },
             data: {
-                isOnline,
-                lastSeen: isOnline ? undefined : new Date()
+                lastSeen: new Date()
             }
         });
     } catch (error) {
@@ -119,6 +118,16 @@ export function isUserConnected(userId: number): boolean {
 export function getUserSocketId(userId: number): string | undefined {
     const userSocket = connectedUsers.get(userId);
     return userSocket?.id;
+}
+
+// Get users online status
+export function getUserOnlineStatus(userId: number): boolean {
+    return connectedUsers.has(userId);
+}
+
+// Get All Online Users
+export function getAllOnlineUsers(): number[] {
+    return Array.from(connectedUsers.keys());
 }
 
 // Message handlers
